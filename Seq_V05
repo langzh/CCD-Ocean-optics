@@ -1,0 +1,156 @@
+#V03 批量时序导出
+#V04 根据波长直接输出
+#V05 GUI可视化
+import os
+import tkinter as tk
+import tkinter.messagebox
+from tkinter.filedialog import askdirectory
+ori_path = ''
+save_path = ''
+allFileNum = 0
+wavelengths_num = ''
+wavelengths = []
+def selectPath():#获取原始文件夹路径
+    global ori_path
+    path_1 = askdirectory()
+    path.set(path_1)
+    ori_path = path_1
+
+def selectSavePath():#获取保存文件夹路径
+    global save_path
+    path_2 = askdirectory()
+    savepath.set(path_2)
+    save_path = path_2
+
+def print_wavelengths():#保存波长数据为list
+    global wavelengths
+    e_text = e.get()
+    wavelengths_num = e_text.split(',')
+    wavelengths = [str(i) for i in wavelengths_num]
+
+def printPath(level,ori_path,save_path,wavelengths):
+
+    def line_find():#定义根据波长寻找行数
+        path0 = os.path.join(ori_path,fileList[0])#fileList[0]为第一个文件在后面出现
+        f0=open(path0,'r')
+        i = 0 
+        lines = []
+        pop_wavelengths = []
+        pop_wavelengths.extend(wavelengths)#复制波长list
+        for line in f0.readlines():
+            if line.split('\t')[0] in wavelengths:#判断波长是否在波长列表中
+                lines.append(i)
+                pop_wavelengths.remove(line.split('\t')[0])
+            i+= 1
+        if  pop_wavelengths:#判断是否有错误波长输入
+            tkinter.messagebox.showwarning('警告','{}波长有误，请核对后尝试'.format(','.join(pop_wavelengths)))
+            lines = []#如果错误返回空集
+            return  window.mainloop()            
+        return lines
+
+    def save_paths():#定义保存多个txt文本的路径
+        save_paths = []
+        for i in wavelengths:
+            save_paths.append(os.path.join(save_path,i+ '.txt'))#'save_path'为txt的上级目录，保存txt           
+        return save_paths    
+    
+    global allFileNum
+    '''''  
+    打印一个目录下的所有文件夹和文件  
+    '''  
+    # 所有文件夹，第一个字段是次目录的级别   
+    dirList = []   
+    # 所有文件   
+    fileList = []   
+    # 返回一个列表，其中包含在目录条目的名称(google翻译)   
+    files = os.listdir(ori_path)   
+    # 先添加目录级别   
+    dirList.append(str(level)) 
+
+    for f in files:   
+        if(os.path.isdir(ori_path + '/' + f)):   
+            # 排除隐藏文件夹。因为隐藏文件夹过多   
+            if(f[0] == '.'):   
+                pass  
+            else:   
+                # 添加非隐藏文件夹   
+                dirList.append(f)   
+        if(os.path.isfile(ori_path + '/' + f)):   
+            # 添加文件   
+            fileList.append(f)   
+    # 当一个标志使用，文件夹列表第一个级别不打印   
+    i_dl = 0  
+    for dl in dirList:   
+        if(i_dl == 0):   
+            i_dl = i_dl + 1  
+        else:   
+            # 打印至控制台，不是第一个的目录   
+            print ('-' * (int(dirList[0])), dl)   
+            # 打印目录下的所有文件夹和文件，目录级别+1   
+            printPath((int(dirList[0]) + 1), ori_path + '/' + dl)
+
+
+    lines = line_find()
+    save_paths = save_paths()
+
+    for fl in fileList:
+        if not isinstance(lines,list):
+            break
+        # 打印文件
+        Path_text = os.path.join(ori_path,fl)
+        f=open(Path_text,'r')#读取原始txt
+        wavelength = f.readlines()#读取原始txt里面的类容
+        time = wavelength[2].split()[4]#获取文件时间
+        for texts,line in zip(save_paths,lines): 
+            with open(texts,'a',encoding='utf-8') as f2: #打开需要保存的txt
+                f2.writelines(time + ' '+ wavelength[line])#写入波长和强度
+                f2.close()
+        wavelength  = []#清空临时寄存 
+        f.close()  
+        allFileNum = allFileNum + 1      # 随便计算一下有多少个文件
+
+window = tk.Tk()
+window.title('Seq_V05')
+path = tk.StringVar()
+savepath = tk.StringVar()
+
+#菜单
+menubar = tk.Menu(window)
+
+window.config(menu =menubar)
+
+fmenu = tk.Menu(menubar)
+def shuoming():
+    tkinter.messagebox.showinfo('使用说明',
+'''针对海洋光学的光谱集提取时序数据
+原始数据文件夹为需要处理的光谱集
+ 保存路径请不要和原始数据同目录
+  输入波长后请按”确认波长“键''')
+
+def shengming():
+    tkinter.messagebox.showinfo('声明','''版权归zasv所有，请仔细核对数据，本人不对结果负责''')
+
+fmenu.add_command(label = '使用说明',command = shuoming)
+fmenu.add_command(label = '声明',command = shengming)
+fmenu.add_command(label = '退出',command =lambda:os._exit(0))
+
+menubar.add_cascade(label = "文件",menu = fmenu)
+
+tk.Label(window,text = "原始数据文件夹:").grid(row = 0, column = 0)
+tk.Entry(window, textvariable = path).grid(row = 0, column = 1)
+tk.Button(window, text = "路径选择", command = selectPath).grid(row = 0, column = 2)
+
+tk.Label(window,text = "保存文件夹目录:").grid(row = 1, column = 0)
+tk.Entry(window, textvariable = savepath).grid(row = 1, column = 1)
+tk.Button(window, text = "路径选择", command = selectSavePath).grid(row = 1, column = 2)
+
+tk.Label(window,text = "输入波长（以英文”,“分割）:").grid(row = 2, column = 0)
+e = tk.Entry(window)
+e.grid(row = 2, column = 1)
+
+tk.Button(window, text = "确认波长",command = print_wavelengths).grid(row = 2, column = 2)
+
+shuchu = tk.Button(window, text = "输出",command = lambda:printPath(1,ori_path,save_path,wavelengths))
+shuchu.grid(row = 3, column = 2)
+
+window.mainloop()
