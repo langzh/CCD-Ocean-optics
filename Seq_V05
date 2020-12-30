@@ -1,6 +1,7 @@
 #V03 批量时序导出
 #V04 根据波长直接输出
 #V05 GUI可视化
+#V06 修正非从小到达输入波长引起的错误。
 import os
 import tkinter as tk
 import tkinter.messagebox
@@ -26,6 +27,7 @@ def print_wavelengths():#保存波长数据为list
     global wavelengths
     e_text = e.get()
     wavelengths_num = e_text.split(',')
+    wavelengths_num.sort() #由于line_find是按照波长从小到大排序的，所以这个也需要重新排序。
     wavelengths = [str(i) for i in wavelengths_num]
 
 def printPath(level,ori_path,save_path,wavelengths):
@@ -38,14 +40,14 @@ def printPath(level,ori_path,save_path,wavelengths):
         pop_wavelengths = []
         pop_wavelengths.extend(wavelengths)#复制波长list
         for line in f0.readlines():
-            if line.split('\t')[0] in wavelengths:#判断波长是否在波长列表中
+            if line.split('\t')[0] in wavelengths:#判断波长是否在波长列表中,顺序搜索，波长list也必须按顺序来。
                 lines.append(i)
                 pop_wavelengths.remove(line.split('\t')[0])
             i+= 1
         if  pop_wavelengths:#判断是否有错误波长输入
             tkinter.messagebox.showwarning('警告','{}波长有误，请核对后尝试'.format(','.join(pop_wavelengths)))
             lines = []#如果错误返回空集
-            return  window.mainloop()            
+            return  window.mainloop()        
         return lines
 
     def save_paths():#定义保存多个txt文本的路径
@@ -110,7 +112,7 @@ def printPath(level,ori_path,save_path,wavelengths):
         allFileNum = allFileNum + 1      # 随便计算一下有多少个文件
 
 window = tk.Tk()
-window.title('Seq_V05')
+window.title('Seq_V06')
 path = tk.StringVar()
 savepath = tk.StringVar()
 
@@ -128,13 +130,15 @@ def shuoming():
   输入波长后请按”确认波长“键''')
 
 def shengming():
-    tkinter.messagebox.showinfo('声明','''版权归zasv所有，请仔细核对数据，本人不对结果负责''')
+    tkinter.messagebox.showinfo('声明','''版权归邓宇佳所有，请仔细核对数据，本人不对结果负责''')
 
 fmenu.add_command(label = '使用说明',command = shuoming)
 fmenu.add_command(label = '声明',command = shengming)
 fmenu.add_command(label = '退出',command =lambda:os._exit(0))
 
 menubar.add_cascade(label = "文件",menu = fmenu)
+
+
 
 tk.Label(window,text = "原始数据文件夹:").grid(row = 0, column = 0)
 tk.Entry(window, textvariable = path).grid(row = 0, column = 1)
@@ -152,5 +156,6 @@ tk.Button(window, text = "确认波长",command = print_wavelengths).grid(row = 
 
 shuchu = tk.Button(window, text = "输出",command = lambda:printPath(1,ori_path,save_path,wavelengths))
 shuchu.grid(row = 3, column = 2)
+
 
 window.mainloop()
